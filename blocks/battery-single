@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# subtracting one because acpi enumerates from 0
+BATTERY_NUMBER=$(($(acpi -b | grep "Battery" -c) - 1))
+BATTERY_PERCENT_SUM=0
+
+# if acpi can not find a battery it is useless to run this script
+if [ $BATTERY_NUMBER -lt 0 ]
+then
+    echo "?"
+    exit 2
+fi
+
+# calculating the sum of the of the battery power of all batteries plugged in
+# and then calculating the average.
+for i in  `seq 0 $BATTERY_NUMBER`
+do
+    current=$(acpi -b | grep "Battery ${i}")
+    current_percent=${current: -3: -1}
+    let "BATTERY_PERCENT_SUM=$BATTERY_PERCENT_SUM+$current_percent"
+done
+
+OUT=$(( $BATTERY_PERCENT_SUM / $(( $BATTERY_NUMBER + 1)) ))
+echo $OUT
