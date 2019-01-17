@@ -1,6 +1,7 @@
 #!/bin/bash
 
-IP_ADDRESS=$(hostname --ip-address)
+ACTIVE_DECICE=$(ip link show | grep 'state UP'  | awk '{ print substr($2,0, length($2)-1) }')
+IP_ADDRESS=$(ip addr show $ACTIVE_DECICE | grep 'inet ' | awk '{ print substr($2, 0, length($2)-3)}')
 
 if [[ "${IP_ADDRESS}" != "" ]]; then
   echo "${IP_ADDRESS}"
