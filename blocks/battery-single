@@ -1,24 +1,28 @@
-#!/bin/bash
+#!/bin/python
+import subprocess
 
-# subtracting one because acpi enumerates from 0
-BATTERY_NUMBER=$(($(acpi -b | grep "Battery" -c) - 1))
-BATTERY_PERCENT_SUM=0
+command = subprocess.run(['acpi', '--everything'], capture_output=True)
+output = command.stdout.decode('utf8').splitlines()
 
-# if acpi can not find a battery it is useless to run this script
-if [ $BATTERY_NUMBER -lt 0 ]
-then
-    echo "?"
-    exit 2
-fi
+battery_capacities = [
+        int(bc.split()[4])
+        for bc 
+        in output 
+        if ('Battery' in bc) and ('capacity' in bc)
+]
 
-# calculating the sum of the of the battery power of all batteries plugged in
-# and then calculating the average.
-for i in  `seq 0 $BATTERY_NUMBER`
-do
-    current=$(acpi -b | grep "Battery ${i}")
-    current_percent=${current: -3: -1}
-    let "BATTERY_PERCENT_SUM=$BATTERY_PERCENT_SUM+$current_percent"
-done
+battery_charging_percentage = [
+        int(bcp.split(',')[1][:-1].strip())
+        for bcp 
+        in output 
+        if ('Battery' in bcp) and 
+           (('Unknown' in bcp) or ('Discharging') in bcp) and
+           ('%' in bcp)
+]
 
-OUT=$(( $BATTERY_PERCENT_SUM / $(( $BATTERY_NUMBER + 1)) ))
-echo "$OUT%"
+res = 0
+for bc, bcp in zip(battery_capacities, battery_charging_percentage):
+    res += bcp * (bc / sum(battery_capacities))
+
+
+print("{}%".format(int(res)))
